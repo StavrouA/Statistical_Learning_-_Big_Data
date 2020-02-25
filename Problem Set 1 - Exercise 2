@@ -1,0 +1,179 @@
+#Question a
+#Read data, clean NAs, summary
+MyData <- read.csv(file="C:/Users/Trainwreck/Documents/R/College.csv", header=TRUE, sep=",")
+sum(is.na.data.frame(MyData))
+summary(MyData$StudentAbsenceDays)
+
+for(j in 1:nrow(MyData)){
+  MyData$StudentAbsenceDays[is.na(MyData$StudentAbsenceDays)] = "Under-7"
+}
+summary(MyData$StudentAbsenceDays)
+
+sum(is.na.data.frame(MyData$LuckyNumber))
+df = MyData[ ,-c(1,19) ]
+sum(is.na.data.frame(df))
+
+#Question b
+dim(df)
+
+#Question c
+#Derive training/testing sets
+set.seed(60456)
+indices = 1:nrow(df)
+trainIndex = sample(x = indices,size = floor(0.7*nrow(df)),replace = F)
+
+training = df[trainIndex,]
+testing = df[-trainIndex,]
+
+dim(training)
+dim(testing)
+
+#Question d
+
+
+#SOSTO
+#Linear model
+
+df = df[ ,-c(2,5) ]
+training = training[,-c(2,5)]
+testing = testing[,-c(2,5)]
+
+
+myfit = lm(raisedhands ~ ., training)
+test_mse = mean((testing$raisedhands - predict(myfit,testing))^2)
+
+#Question e
+#Polynomial 3rd degree splines
+library(splines)
+
+
+fit_3 = lm(raisedhands ~ poly(VisITedResources, degree = 3), data = training)
+test_mse3 = mean((testing$raisedhands - predict(fit_3,testing))^2)
+
+vrlims<-range(df$VisITedResources)
+
+vr.grid<-seq(from=vrlims[1], to = vrlims[2])
+
+splfit<-lm(raisedhands ~ bs(VisITedResources,knots = c(33,66)),data = training)
+summary(splfit)
+
+plot(df$VisITedResources,df$raisedhands,col="grey",xlab="Visited Resources",ylab="raisedhands")
+points(vr.grid,predict(splfit,newdata = list(VisITedResources=vr.grid)),col="darkgreen",lwd=2,type="l")
+abline(v=c(33,66),lty=2,col="darkgreen")
+
+spline_test_mse = mean((testing$raisedhands - predict(splfit,testing))^2)
+
+#The test mse has decreased, as we have a better fit now that I have split my sets in 3 parts.
+
+#Question f
+library(glmnet)
+
+x1=model.matrix(raisedhands~.,training)[,-1]
+x2=model.matrix(raisedhands~.,testing)[,-1]
+
+fit_ridge_cv = cv.glmnet(x1, training$raisedhands, alpha = 0)
+ridgepred=predict(fit_ridge_cv, x2, s = "lambda.min")
+ridge_mse = mean((testing$raisedhands - ridgepred) ^ 2)
+
+#Question g
+
+fit_lasso_cv = cv.glmnet(x1, training$raisedhands, alpha = 1)
+lassopred=predict(fit_lasso_cv, x2, s = "lambda.min")
+lasso_mse=mean((testing$raisedhands - lassopred) ^ 2)
+
+#coefficients with non-zero estimates
+newfit=coef(fit_lasso_cv, s = "lambda.min")
+length(newfit@x)
+
+#Question h
+
+########################################exhaustive##########################################
+library(leaps)
+regsub = regsubsets(raisedhands~., df, nvmax=10)
+regsub_summary = summary(regsub)
+regsub_summary$bic
+###########plots##############################
+par(mfrow = c(2,2))
+plot(regsub_summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(regsub_summary$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+
+adj_r2_max = which.max(regsub_summary$adjr2) 
+adj_r2_max
+
+points(adj_r2_max, regsub_summary$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+points(adj_r2_max, regsub_summary$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+plot(regsub_summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+cp_min = which.min(regsub_summary$cp)
+cp_min
+points(cp_min, regsub_summary$cp[cp_min], col = "red", cex = 2, pch = 20)
+
+plot(regsub_summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(regsub_summary$bic) 
+bic_min
+points(bic_min, regsub_summary$bic[bic_min], col = "red", cex = 2, pch = 20)
+
+coef(regsub, 10)
+coef(regsub, 5)
+
+########################################forward###########################################
+
+regsub_fwd = regsubsets(raisedhands~., df, nvmax=15, method = "forward")
+regsub_summary2 =summary(regsub_fwd)
+
+###########plots##############################
+par(mfrow = c(2,2))
+plot(regsub_summary2$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(regsub_summary2$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+
+adj_r2_max = which.max(regsub_summary2$adjr2) 
+adj_r2_max
+
+points(adj_r2_max, regsub_summary2$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+plot(regsub_summary2$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+cp_min = which.min(regsub_summary2$cp) 
+cp_min
+points(cp_min, regsub_summary2$cp[cp_min], col = "red", cex = 2, pch = 20)
+
+plot(regsub_summary2$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(regsub_summary2$bic) 
+bic_min
+points(bic_min, regsub_summary2$bic[bic_min], col = "red", cex = 2, pch = 20)
+
+coef(regsub_fwd, 15)
+coef(regsub_fwd, 12)
+coef(regsub_fwd, 5)
+
+########################################backward##########################################
+
+regsub_bwd = regsubsets(raisedhands~., df, nvmax=15, method = "backward")
+regsub_summary3 =summary(regsub_bwd)
+
+###########plots##############################
+par(mfrow = c(2,2))
+plot(regsub_summary3$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(regsub_summary3$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+
+adj_r2_max = which.max(regsub_summary3$adjr2) 
+adj_r2_max
+
+points(adj_r2_max, regsub_summary3$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+plot(regsub_summary3$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+cp_min = which.min(regsub_summary3$cp) 
+cp_min
+points(cp_min, regsub_summary3$cp[cp_min], col = "red", cex = 2, pch = 20)
+
+plot(regsub_summary3$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(regsub_summary3$bic) 
+bic_min
+points(bic_min, regsub_summary3$bic[bic_min], col = "red", cex = 2, pch = 20)
+
+
+coef(regsub_bwd, 13)
+coef(regsub_bwd, 12)
+coef(regsub_bwd, 5)
+
+
