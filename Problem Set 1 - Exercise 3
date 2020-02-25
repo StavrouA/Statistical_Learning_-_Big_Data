@@ -1,0 +1,108 @@
+#Question a
+
+f = function(x,j) {
+  x ^ j
+}
+
+set.seed(165)
+k=10
+n=100
+dmatrix=matrix(data=NA, nrow=n, ncol=k)
+
+x = runif(100, min = 0, max = 1)
+eps = rnorm(100, mean = 0, sd = 0.5)
+for(j in 1:k){
+  dmatrix[,j] = f(x,j)
+}
+
+y = 50 + 0.8*f(x,1) + 0.5*f(x,2) + 0.3*f(x,4) + eps
+ones=matrix(data=1,nrow=n,ncol=1)
+datf = data.frame(y,dmatrix)
+desmat = model.matrix(y~.,data = datf)
+
+
+
+betahats = function(dataframe, y){
+  datmat=as.matrix(dataframe)
+  datmaty=datmat[,y]
+  datmatx=cbind(1,datmat[,-y])
+  beta = round(solve(t(datmatx)%*%datmatx)%*%t(datmatx)%*%datmaty,digits=3)
+  return(beta)
+}
+
+
+betas=betahats(datf,1)
+betas
+
+#Question b
+
+ridgebetahats = function(dataframe, y, lambda){
+
+  datmat=as.matrix(dataframe)
+  datmaty=datmat[,y]
+  datmatx=cbind(1,datmat[,-y])
+  k=ncol(datmatx)
+  I=diag(k)
+  beta = round((solve(t(datmatx)%*%datmatx)+lambda*I)%*%t(datmatx)%*%datmaty,digits=3)
+  return(beta)
+}
+
+ridgebetas=ridgebetahats(datf,1,0.01)
+ridgebetas
+
+#Question c
+
+predictions = function(betas, desmatrix){
+  yhats=desmatrix%*%betas
+  return(yhats)
+}
+
+yhats=predictions(betas,desmat)
+
+#Question d
+
+mse = function(response, yhat){
+  mse = mean((response - yhat) ^ 2)
+  return(mse)
+}
+
+get_MSE=mse(y,yhats)
+
+#QUestion e
+
+my_cv = function(datf,k){
+  #Reshuffling my data
+  datf = datf[sample(nrow(datf)),]
+  MSEmatrix=matrix(data=NA, nrow=k, ncol=2)
+  MSEres=matrix(data=NA,nrow=1,ncol=2)
+  folds = cut(seq(1,nrow(datf)),breaks=k,labels=FALSE)
+  
+  for(i in 1:k){
+    
+    testIndexes = which(folds==i,arr.ind=TRUE)
+    testData = datf[testIndexes, ]
+    trainData = datf[-testIndexes, ]
+    testdesmat=model.matrix(y~.,testData)
+    
+    betasOLS=betahats(trainData,1)
+    betasRIDGE=ridgebetahats(trainData,1,.1)
+    
+    olspred=predictions(betasOLS,testdesmat) 
+    ridgepred=predictions(betasRIDGE,testdesmat)
+    
+    getolsMSE=mse(testData$y,olspred)
+    getridgeMSE=mse(testData$y,ridgepred)
+    
+    MSEmatrix[i,1]=getolsMSE
+    MSEmatrix[i,2]=getridgeMSE
+  }
+  MSEres[1,1]=mean(MSEmatrix[,1])
+  MSEres[1,2]=mean(MSEmatrix[,2])
+  
+
+   return(MSEres)
+}
+
+
+c=my_cv(datf,10)
+c
