@@ -1,0 +1,179 @@
+#Question a
+
+f = function(x,j) {
+  x ^ j
+}
+
+set.seed(165)
+k=10
+n=100
+dmatrix=matrix(data=NA, nrow=n, ncol=k)
+
+x = runif(100, min = 0, max = 1)
+eps = rnorm(100, mean = 0, sd = 0.5)
+for(j in 1:k){
+  dmatrix[,j] = f(x,j)
+}
+
+#Question b
+
+y = 50 + 0.8*f(x,1) + 0.5*f(x,2) + 0.3*f(x,4) + eps
+datf = data.frame(y,dmatrix)
+
+#Question c
+
+library(leaps)
+
+########################################exhaustive##########################################
+
+bsub = regsubsets(y~., data = datf, nvmax=10)
+bsub_summary = summary(bsub)
+bsub_summary
+bsub_summary$adjr2
+
+###########plots##############################
+par(mfrow = c(2,2))
+plot(bsub_summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(bsub_summary$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+
+adj_r2_max = which.max(bsub_summary$adjr2) 
+adj_r2_max
+
+points(adj_r2_max, bsub_summary$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+points(adj_r2_max, bsub_summary$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+plot(bsub_summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+cp_min = which.min(bsub_summary$cp)
+cp_min
+points(cp_min, bsub_summary$cp[cp_min], col = "red", cex = 2, pch = 20)
+
+plot(bsub_summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(bsub_summary$bic) 
+bic_min
+points(bic_min, bsub_summary$bic[bic_min], col = "red", cex = 2, pch = 20)
+
+coef(bsub, 4)
+coef(bsub, 1)
+
+########################################forward###########################################
+
+bsub_fwd = regsubsets(y~., datf,nvmax=10, method = "forward")
+bsub_summary2 =summary(bsub_fwd)
+bsub_summary2
+bsub_summary2$adjr2
+
+###########plots##############################
+par(mfrow = c(2,2))
+plot(bsub_summary2$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(bsub_summary2$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+
+adj_r2_max = which.max(bsub_summary2$adjr2) 
+adj_r2_max
+
+points(adj_r2_max, bsub_summary2$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+plot(bsub_summary2$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+cp_min = which.min(bsub_summary2$cp) 
+cp_min
+points(cp_min, bsub_summary2$cp[cp_min], col = "red", cex = 2, pch = 20)
+
+plot(bsub_summary2$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(bsub_summary2$bic) 
+bic_min
+points(bic_min, bsub_summary2$bic[bic_min], col = "red", cex = 2, pch = 20)
+
+coef(bsub_fwd, 5)
+coef(bsub_fwd, 1)
+
+########################################backward##########################################
+
+bsub_bwd = regsubsets(y~., datf, nvmax=10, method = "backward")
+bsub_summary3 =summary(bsub_bwd)
+bsub_summary3
+bsub_summary3$rss
+
+###########plots##############################
+par(mfrow = c(2,2))
+plot(bsub_summary3$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(bsub_summary3$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+
+adj_r2_max = which.max(bsub_summary3$adjr2) 
+adj_r2_max
+
+points(adj_r2_max, bsub_summary3$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+plot(bsub_summary3$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+cp_min = which.min(bsub_summary3$cp) 
+cp_min
+points(cp_min, bsub_summary3$cp[cp_min], col = "red", cex = 2, pch = 20)
+
+plot(bsub_summary3$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(bsub_summary3$bic) 
+bic_min
+points(bic_min, bsub_summary3$bic[bic_min], col = "red", cex = 2, pch = 20)
+
+
+coef(bsub_bwd, 4)
+coef(bsub_bwd, 3)
+#######################################################################################
+
+#Question e (LASSO)
+
+library(glmnet)
+
+fit_lasso_cv = cv.glmnet(dmatrix, y, alpha = 1)
+plot(fit_lasso_cv)
+coef(fit_lasso_cv, s = "lambda.min")
+
+pred=predict(fit_lasso_cv, dmatrix, s = "lambda.min")
+mean((y - pred) ^ 2)
+sqrt(fit_lasso_cv$cvm)
+sqrt(fit_lasso_cv$cvm[fit_lasso_cv$lambda == fit_lasso_cv$lambda.min])
+
+#Question f
+
+y2 = 50 + 0.7*f(x,7) + eps
+datf2 = data.frame(y2,dmatrix)
+
+########################################exhaustive##########################################
+
+bsub2 = regsubsets(y2~., datf2, nvmax=10)
+bsub2_summary = summary(bsub2)
+bsub2_summary
+bsub2_summary$adjr2
+
+###########plots##############################
+par(mfrow = c(2,2))
+plot(bsub2_summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(bsub2_summary$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+
+adj_r2_max = which.max(bsub2_summary$adjr2) 
+adj_r2_max
+
+points(adj_r2_max, bsub2_summary$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+points(adj_r2_max, bsub2_summary$adjr2[adj_r2_max], col ="red", cex = 2, pch = 20)
+
+plot(bsub2_summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+cp_min = which.min(bsub2_summary$cp)
+cp_min
+points(cp_min, bsub2_summary$cp[cp_min], col = "red", cex = 2, pch = 20)
+
+plot(bsub2_summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(bsub2_summary$bic) 
+bic_min
+points(bic_min, bsub2_summary$bic[bic_min], col = "red", cex = 2, pch = 20)
+
+coef(bsub2, 4)
+coef(bsub2, 1)
+###################################LASSO###################################################
+
+fit_lasso_cv2 = cv.glmnet(dmatrix, y2, alpha = 1)
+plot(fit_lasso_cv2)
+coef(fit_lasso_cv2, s = "lambda.min")
+
+pred=predict(fit_lasso_cv2, dmatrix, s = "lambda.min")
+mean((y2 - pred) ^ 2)
+sqrt(fit_lasso_cv2$cvm)
+sqrt(fit_lasso_cv2$cvm[fit_lasso_cv2$lambda == fit_lasso_cv2$lambda.min])
