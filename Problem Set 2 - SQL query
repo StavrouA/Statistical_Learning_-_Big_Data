@@ -1,0 +1,56 @@
+--DROP TABLE IF EXISTS sa;
+
+
+--DROP TABLE IF EXISTS sa;
+CREATE TABLE sa AS 
+SELECT A.*,B.yearlyincome,B.totalchildren,B.gender,B.education,B.maritalstatus,B.customertype,B.geographykey
+FROM data_customer_lvl_fnl AS A
+LEFT JOIN DIMCUSTOMER AS B
+ON A.CUSTOMERKEY=B.CUSTOMERKEY;
+
+--DROP TABLE IF EXISTS test123;
+CREATE TABLE test123 AS
+SELECT 
+CUSTOMERKEY,
+CASE  WHEN date_part('year',birthdate)>= 1980 THEN '18-30' 
+      WHEN date_part('year',birthdate)>= 1970 THEN '31-40'
+      WHEN date_part('year',birthdate)>= 1960 THEN '41-50'
+      WHEN date_part('year',birthdate)>= 1950 THEN '51-60'
+      WHEN date_part('year',birthdate)>= 1910 THEN '60+' END as newage
+FROM DIMCUSTOMER
+GROUP BY CUSTOMERKEY
+ORDER BY CUSTOMERKEY;
+
+--DROP TABLE IF EXISTS sa2;
+CREATE TABLE sa2 AS 
+SELECT A.*,B.newage
+FROM sa AS A
+LEFT JOIN test123 AS B
+ON A.CUSTOMERKEY=B.CUSTOMERKEY;
+
+select max(birthdate) from dimcustomer;
+
+select dimcustomer.customertype from dimcustomer where dimcustomer.gender IS NULL;
+select count(distinct dimcustomer.customertype) from dimcustomer where dimcustomer.gender IS NULL;
+
+select dimcustomer.customertype from dimcustomer where dimcustomer.gender IS NOT NULL;
+select count(distinct dimcustomer.customertype) from dimcustomer where dimcustomer.gender IS NOT NULL;
+
+--DROP TABLE IF EXISTS sa3
+create table sa3 as
+select A.*,B.geographytype,B.continentname
+from sa2 as A
+left join dimgeography as B
+on A.geographykey=B.geographykey;
+
+select sa3.customerkey, sa3.geographytype, sa3.continentname
+from sa3
+where sa3.gender is null;
+
+
+WbExport -type=text
+         -file='C:/Users/Me/Desktop/sqldatafnl2.csv'
+         -delimiter=','
+         -decimal='.';
+SELECT * FROM sa3;
+here dimcustomer.gender IS NOT NULL;
