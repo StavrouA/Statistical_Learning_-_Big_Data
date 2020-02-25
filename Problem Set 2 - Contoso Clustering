@@ -1,0 +1,177 @@
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+library(digest)  #dependency for some package
+
+df = read.csv(file="C:/Users/Me/Desktop/sqldatafnl2.csv", header=TRUE, sep=",")
+colnames(df)
+sum(is.na(df))
+dim(df)
+
+#We chose to cluster by revenues per product, since the clusters are less and more clear
+#############keeping the variables that matter########
+dfrev = df[ ,-c(1:71,74:77,110:151) ]
+dfrev = scale(dfrev)
+colnames(dfrev)
+sum(is.na(dfrev))
+dim(dfrev)
+
+#k-means clustering
+set.seed(123)
+
+k2 = kmeans(dfrev, centers = 2, nstart = 25)
+k2$withinss/k2$betweenss
+k2$betweenss/k2$totss 
+k2$size
+
+k3 = kmeans(dfrev, centers = 3, nstart = 25)
+k3$withinss/k3$betweenss
+k3$betweenss/k3$totss
+k3$size
+
+k4 = kmeans(dfrev, centers = 4, nstart = 25)
+k4$withinss/k4$betweenss
+k4$betweenss/k4$totss
+k4$size
+
+#k10 = kmeans(dfrev, centers = 10, nstart = 25)
+#k10$withinss/k10$betweenss
+#k10$betweenss/k10$totss
+#k10$size
+
+##########Cluster Visualization############
+
+fviz_cluster(k2, data = dfrev)
+fviz_cluster(k3, data = dfrev)
+fviz_cluster(k4, data = dfrev)
+
+#fviz_cluster(k10, data = dfrev)
+####ALL IN 1 PLOT####
+#p1 = fviz_cluster(k2, geom = "point", data = dfrev) + ggtitle("k = 2")
+#p2 = fviz_cluster(k3, geom = "point",  data = dfrev) + ggtitle("k = 3")
+#p3 = fviz_cluster(k4, geom = "point",  data = dfrev) + ggtitle("k = 4")
+
+#library(gridExtra)
+#grid.arrange(p1, p2, p3, nrow = 3)
+
+########cluster statistics#################
+
+#new data.frame
+clus = k3$cluster
+#newdf = df[ ,-c(1:71,74:77,110:141) ]
+newdf = data.frame(df,clus)
+dim(newdf)
+colnames(newdf)
+
+#NA Values or how many companies per Cluster!
+sum(is.na.data.frame(newdf)[newdf$clus==1])
+sum(is.na.data.frame(newdf)[newdf$clus==2])
+sum(is.na.data.frame(newdf)[newdf$clus==3])
+
+#education
+ed1=summary(newdf$education[newdf$clus==1])
+ed2=summary(newdf$education[newdf$clus==2])
+ed3=summary(newdf$education[newdf$clus==3])
+
+#gender
+g1=summary(newdf$gender[newdf$clus==1])
+g2=summary(newdf$gender[newdf$clus==2])
+g3=summary(newdf$gender[newdf$clus==3])
+
+#children
+ch1=summary(newdf$totalchildren[newdf$clus==1])
+ch2=summary(newdf$totalchildren[newdf$clus==2])
+ch3=summary(newdf$totalchildren[newdf$clus==3])
+
+#income
+y1=summary(newdf$yearlyincome[newdf$clus==1])
+y2=summary(newdf$yearlyincome[newdf$clus==2])
+y3=summary(newdf$yearlyincome[newdf$clus==3])
+
+#avg(prod_per_basket)
+m1=mean(newdf$products_per_basket[newdf$clus==1])
+m2=mean(newdf$products_per_basket[newdf$clus==2])
+m3=mean(newdf$products_per_basket[newdf$clus==3])
+
+#avg(visits)
+v1=mean(newdf$basket[newdf$clus==1])
+v2=mean(newdf$basket[newdf$clus==2])
+v3=mean(newdf$basket[newdf$clus==3])
+
+#total revenues per cluster
+rev1=sum(newdf$sum_sales[newdf$clus==1])
+rev2=sum(newdf$sum_sales[newdf$clus==2])
+rev3=sum(newdf$sum_sales[newdf$clus==3])
+
+
+#best revenue units per cluster
+#share of revenues depending the cluster in new matrices
+sharerev = newdf[,-c(1:77,110:182)]
+
+sharerev1=sharerev[newdf[, "clus"] == 1,]
+sharerev2=sharerev[newdf[, "clus"] == 2,]
+sharerev3=sharerev[newdf[, "clus"] == 3,]
+
+means1=as.data.frame(t(colMeans(sharerev1)))
+means2=as.data.frame(t(colMeans(sharerev2)))
+means3=as.data.frame(t(colMeans(sharerev3)))
+
+max1=max(means1)
+max2=max(means2)
+max3=max(means3)
+
+#which product has the maximum average revenue for each cluster?-------------------
+which1=which.max(means1)
+colnames(means1)[which1]
+
+which2=which.max(means2)
+colnames(means2)[which2]
+
+which3=which.max(means3)
+colnames(means3)[which3]
+
+#which has the second most?--------------------------------------------------------
+sharerev12=sharerev[,-c(which1)]
+sharerev22=sharerev[,-c(which2)]
+sharerev32=sharerev[,-c(which3)]
+
+means12=as.data.frame(t(colMeans(sharerev12)))
+means22=as.data.frame(t(colMeans(sharerev22)))
+means32=as.data.frame(t(colMeans(sharerev32)))
+
+max12=max(means12)
+max22=max(means22)
+max32=max(means32)
+
+which12=which.max(means12)
+colnames(means12)[which12]
+
+which22=which.max(means22)
+colnames(means22)[which22]
+
+which32=which.max(means32)
+colnames(means32)[which32]
+
+  
+#total units sold per cluster
+un1=sum(newdf$sum_units[newdf$clus==1])
+un2=sum(newdf$sum_units[newdf$clus==2])
+un3=sum(newdf$sum_units[newdf$clus==3])
+
+#age
+age1=summary(newdf$newage[newdf$clus==1])
+age2=summary(newdf$newage[newdf$clus==2])
+age3=summary(newdf$newage[newdf$clus==3])
+
+#marital status
+ms1=summary(newdf$maritalstatus[newdf$clus==1])
+ms2=summary(newdf$maritalstatus[newdf$clus==2])
+ms3=summary(newdf$maritalstatus[newdf$clus==3])
+
+#continentname
+cn1=summary(newdf$continentname[newdf$clus==1])
+cn2=summary(newdf$continentname[newdf$clus==2])
+cn3=summary(newdf$continentname[newdf$clus==3])
+
+##############END##################
+#time consuming "optimal number of clusters" plot
+#fviz_nbclust(dfrev, kmeans, method = "silhouette")
